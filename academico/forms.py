@@ -2,6 +2,8 @@ from django import forms
 
 from .models import Estudiante
 
+from .models import Carrera, Estudiante, Jornada, Matricula
+
 
 class EstudianteForm(forms.ModelForm):
     class Meta:
@@ -76,3 +78,18 @@ class CatalogoForm(forms.Form):
         label="Jornada",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+
+
+
+class MatriculaForm(forms.ModelForm):
+    class Meta:
+        model = Matricula
+        fields = ["estudiante", "seccion"]
+        labels = {
+            "estudiante": "Estudiante",
+            "seccion": "Sección / Materia ofertada",
+        }
+        widgets = {
+            "estudiante": forms.Select(attrs={"class": "form-select"}),
+            "seccion": forms.Select(attrs={"class": "form-select"}),
+        }
