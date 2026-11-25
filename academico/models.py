@@ -222,34 +222,51 @@ class Matricula(ModeloBase):
         return f"{self.estudiante} → {self.seccion}"
 
     def clean(self):
-        """Reglas del negocio que miran OTRAS tablas."""
-        if not self.estudiante_id or not self.seccion_id:     # si falta alguno, ya lo avisa su propio campo
-            return
-        if self.seccion.curso.carrera_id != self.estudiante.carrera_id:
-            raise ValidationError("El curso no pertenece a la carrera del estudiante.")
-        ocupados = self.seccion.matriculas.exclude(pk=self.pk).count()
-        if ocupados >= self.seccion.cupo:
-            raise ValidationError(f"La sección no tiene cupo ({self.seccion.cupo} estudiantes).")
+        # Regla 1: solo puedes matricularte en cursos de tu propia carrera
+        if self.estudiante_id and self.seccion_id:
+            if self.seccion.curso.carrera_id != self.estudiante.carrera_id:
+                raise ValidationError({
+                    "seccion": "El curso no pertenece a la carrera del estudiante."
+                })
+        # Regla 2: la sección no puede pasarse del cupo
+        # (excluimos esta misma matrícula para no contar doble al editar)
+        if self.seccion_id:
+            inscritos = self.seccion.matriculas.exclude(pk=self.pk).count()
+            if inscritos >= self.seccion.cupo:
+                raise ValidationError({
+                    "seccion": f"La sección ya está llena ({inscritos}/{self.seccion.cupo})."
+                })
 
 
 class Nota(ModeloBase):
-    matricula = models.OneToOneField(Matricula, on_delete=models.CASCADE, related_name="nota")   # 1:1
-    n1 = models.DecimalField("Nota 1", max_digits=5, decimal_places=2, default=0, validators=VALIDAR_NOTA)
-    n2 = models.DecimalField("Nota 2", max_digits=5, decimal_places=2, default=0, validators=VALIDAR_NOTA)
-    n3 = models.DecimalField("Nota 3", max_digits=5, decimal_places=2, default=0, validators=VALIDAR_NOTA)
-    # Calculados en save(): se guardan para poder FILTRAR y EXPORTAR por ellos
-    promedio = models.DecimalField(max_digits=5, decimal_places=2, default=0, editable=False)
-    estado = models.CharField(max_length=10, choices=EstadoNota.choices, default=EstadoNota.REPROBADO, editable=False)
+    matricula = models.OneToOneField(Matricula, on_delete=models.CASCADE, related_name="nota")
+    n1 = models.DecimalField("Nota 1", max_digits=5, decimal_places=2, validators=VALIDAR_NOTA)
+    n2 = models.DecimalField("Nota 2", max_digits=5, decimal_places=2, validators=VALIDAR_NOTA)
+    n3 = models.DecimalField("Nota 3", max_digits=5, decimal_places=2, validators=VALIDAR_NOTA)
+    promedio = models.DecimalField(max_digits=5, decimal_places=2, editable=False, default=0)
+    estado = models.CharField(
+        max_length=10, choices=EstadoNota.choices,
+        default=EstadoNota.REPROBADO, editable=False,
+    )
 
     class Meta:
         verbose_name = "Nota"
         verbose_name_plural = "Notas"
+        ordering = ["-fecha_creacion"]
 
     def __str__(self):
-        return f"{self.matricula.estudiante} · {self.promedio} ({self.get_estado_display()})"
+        return f"{self.matricula} · {self.promedio}"
 
     def save(self, *args, **kwargs):
-        """Antes de guardar: calcula el promedio y decide si aprueba."""
-        self.promedio = ((self.n1 + self.n2 + self.n3) / 3).quantize(Decimal("0.01"))
-        self.estado = EstadoNota.APROBADO if self.promedio >= NOTA_MINIMA_APROBACION else EstadoNota.REPROBADO
-        super().save(*args, **kwargs)                            # ahora sí: INSERT o UPDATE
+        # El promedio y el estado se calculan SIEMPRE aquí,
+        # venga la nota del formulario, del admin o del shell.
+        n1 = Decimal(str(self.n1))
+        n2 = Decimal(str(self.n2))
+        n3 = Decimal(str(self.n3))
+        self.promedio = ((n1 + n2 + n3) / Decimal("3")).quantize(Decimal("0.01"))
+        self.estado = (
+            EstadoNota.APROBADO
+            if self.promedio >= NOTA_MINIMA_APROBACION
+            else EstadoNota.REPROBADO
+        )
+        super().save(*args, **kwargs)

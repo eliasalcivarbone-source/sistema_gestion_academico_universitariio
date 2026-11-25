@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 1.5cm;
+      @frame pie {
+        -pdf-frame-content: pie;
+        bottom: 0.5cm;
+        height: 1cm;
+        margin-left: 1.5cm;
+      }
+    }
+    body {
+      font-family: Helvetica;
+      font-size: 9pt;
+      color: #0f172a;
+    }
+    h1 {
+      font-size: 15pt;
+      color: #0c4b33;
+      margin: 0 0 4px;
+    }
+    .meta {
+      font-size: 8.5pt;
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background: #0c4b33;
+      color: #ffffff;
+      padding: 5px;
+      text-align: left;
+      font-weight: bold;
+    }
+    td {
+      border-bottom: 0.5px solid #cbd5e1;
+      padding: 5px;
+      text-align: left;
+    }
+    #pie {
+      font-size: 8pt;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <h1>{{ titulo }}</h1>
+  <div class="meta">
+    Generado el {{ fecha|date:"d/m/Y H:i" }} por {{ usuario.username }} · Total: {{ total }} registro(s)
+  </div>
+
+  {% if filtros %}
+    <div class="meta">
+      <strong>Filtros aplicados:</strong> {{ filtros|join:" · " }}
+    </div>
+  {% endif %}
+
+  <table repeat="1">
+    <thead>
+      <tr>
+        {% for enc in encabezados %}
+          <th>{{ enc }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in filas %}
+        <tr>
+          {% for valor in fila %}
+            <td>{{ valor }}</td>
+          {% endfor %}
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="{{ encabezados|length }}">No hay registros para mostrar.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div id="pie">
+    Página <pdf:pagenumber> de <pdf:pagecount>
+  </div>
+</body>
+</html>

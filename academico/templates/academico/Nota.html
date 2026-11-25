@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Calificaciones - Sistema Académico{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Registro y edición de notas</h1>
+        <p class="text-muted mb-0">
+            Estudiante: <strong>{{ matricula.estudiante }}</strong> ·
+            Sección: <strong>{{ matricula.seccion }}</strong>
+        </p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% url 'academico:matriculas' %}">Volver a matrículas</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Calificaciones parciales</div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">Guardar notas</button>
+                        <a href="{% url 'academico:matriculas' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Resumen actual</div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Promedio:</strong> {{ nota.promedio|default:"-" }}</p>
+                <p class="mb-0"><strong>Estado:</strong> {{ nota.estado|default:"Pendiente" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
