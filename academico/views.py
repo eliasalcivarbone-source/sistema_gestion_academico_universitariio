@@ -199,3 +199,66 @@ class UniversidadPdfView(LoginRequiredMixin, ComprobantePdfMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context["facultades"] = self.object.facultades.prefetch_related("carreras").order_by("nombre")
         return context
+    
+    
+    
+
+# =====================================================================
+# CRUD DE ESTUDIANTES
+# =====================================================================
+class EstudianteListView(LoginRequiredMixin, ListView):
+    model = Estudiante
+    template_name = "academico/estudiante_lista.html"
+    context_object_name = "estudiantes"
+    paginate_by = 10
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("carrera").order_by("apellidos", "nombres")
+
+
+class EstudianteDetailView(LoginRequiredMixin, DetailView):
+    model = Estudiante
+    template_name = "academico/estudiante_detalle.html"
+    context_object_name = "estudiante"
+
+
+class EstudianteCreateView(LoginRequiredMixin, UsuarioRegistroMixin, SuccessMessageMixin, CreateView):
+    model = Estudiante
+    form_class = EstudianteForm
+    template_name = "academico/estudiante_form.html"
+    success_url = reverse_lazy("academico:estudiante_lista")
+    success_message = "Estudiante creado correctamente."
+
+
+class EstudianteUpdateView(LoginRequiredMixin, UsuarioRegistroMixin, SuccessMessageMixin, UpdateView):
+    model = Estudiante
+    form_class = EstudianteForm
+    template_name = "academico/estudiante_form.html"
+    success_url = reverse_lazy("academico:estudiante_lista")
+    success_message = "Estudiante actualizado correctamente."
+
+from django.db.models import ProtectedError
+from django.contrib import messages
+from django.shortcuts import redirect
+
+class EstudianteDeleteView(LoginRequiredMixin, DeleteView):
+    model = Estudiante
+    template_name = "academico/estudiante_eliminar.html"
+    context_object_name = "estudiante"
+    success_url = reverse_lazy("academico:estudiante_lista")
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            response = super().post(request, *args, **kwargs)
+            messages.success(request, "Estudiante eliminado correctamente.")
+            return response
+        except ProtectedError:
+            messages.error(request, "No se puede eliminar: el estudiante ya tiene matrículas registradas.")
+            return redirect("academico:estudiante_lista")
+
+class EstudiantePdfView(LoginRequiredMixin, ComprobantePdfMixin, DetailView):
+    model = Estudiante
+    template_pdf = "academico/pdf/estudiante_ficha.html"
+    nombre_archivo = "estudiante"
+    context_object_name = "estudiante"

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Detalle del Estudiante</h4>
+        </div>
+        <div class="card-body">
+            <h3>{{ estudiante.apellidos }} {{ estudiante.nombres }}</h3>
+            <p><strong>Cédula:</strong> {{ estudiante.cedula }}</p>
+            <p><strong>Carrera:</strong> {{ estudiante.carrera.nombre }}</p>
+            <p><strong>Email:</strong> {{ estudiante.email|default:"No registrado" }}</p>
+            
+            {% if estudiante.foto %}
+                <img src="{{ estudiante.foto.url }}" alt="Foto" class="img-thumbnail mt-2" style="max-height: 200px;">
+            {% endif %}
+
+            <br><br>
+            <a href="{% url 'academico:estudiante_lista' %}" class="btn btn-secondary mt-3">Volver a la lista</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

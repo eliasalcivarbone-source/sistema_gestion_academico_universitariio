@@ -23,6 +23,18 @@ urlpatterns = [
     path("universidades/<int:pk>/editar/", views.UniversidadUpdateView.as_view(), name="universidad_editar"),
     path("universidades/<int:pk>/eliminar/", views.UniversidadDeleteView.as_view(), name="universidad_eliminar"),
     path("universidades/<int:pk>/pdf/", views.UniversidadPdfView.as_view(), name="universidad_pdf"),
+    
+    
+    
+    
+
+  # Rutas de Estudiantes
+    path("estudiantes/lista/", views.EstudianteListView.as_view(), name="estudiante_lista"),
+    path("estudiantes/crear/", views.EstudianteCreateView.as_view(), name="estudiante_crear"),
+    path("estudiantes/<int:pk>/", views.EstudianteDetailView.as_view(), name="estudiante_detalle"),
+    path("estudiantes/<int:pk>/editar/", views.EstudianteUpdateView.as_view(), name="estudiante_editar"),
+    path("estudiantes/<int:pk>/eliminar/", views.EstudianteDeleteView.as_view(), name="estudiante_eliminar"),
+    path("estudiantes/<int:pk>/pdf/", views.EstudiantePdfView.as_view(), name="estudiante_pdf"),
 ]
    
 
