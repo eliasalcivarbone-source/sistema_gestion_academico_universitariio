@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h4 class="mb-0">Detalle de la Universidad</h4>
+        </div>
+        <div class="card-body">
+            <h3>{{ universidad.nombre }} ({{ universidad.siglas }})</h3>
+            <p><strong>Ciudad:</strong> {{ universidad.ciudad }}</p>
+            
+            <hr>
+            <h5>Facultades asociadas:</h5>
+            <ul>
+                {% for facultad in facultades %}
+                    <li>{{ facultad.nombre }}</li>
+                {% empty %}
+                    <li>Esta universidad aún no tiene facultades registradas.</li>
+                {% endfor %}
+            </ul>
+
+            <a href="{% url 'academico:universidad_lista' %}" class="btn btn-secondary mt-3">Volver a la lista</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
