@@ -1,129 +1,100 @@
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse_lazy
-from django.views import View
-from django.views.generic import CreateView, DeleteView
-
-from .forms import CatalogoForm, EstudianteForm, MatriculaForm, NotaForm
-from .models import Carrera, Estudiante, Matricula, Nota, Seccion
-
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import ProtectedError, Q
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
+from django.views import View
+from django.views.generic import (
+    CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
+)
 
 from core.mixins import ComprobantePdfMixin, ExportarMixin, UsuarioRegistroMixin
-from .forms import FiltroUniversidadForm, UniversidadForm
-from .models import Universidad
+from .forms import (
+    CatalogoForm, EstudianteForm, MatriculaForm, NotaForm,
+    FiltroUniversidadForm, UniversidadForm
+)
+from .models import Carrera, Estudiante, Matricula, Nota, Seccion, Universidad
 
 
+# =====================================================================
+# VISTAS BÁSICAS
+# =====================================================================
+class InicioView(LoginRequiredMixin, TemplateView):
+    template_name = "academico/inicio.html"
 
 
+class EstudianteCreateView(LoginRequiredMixin, CreateView):
+    model = Estudiante
+    form_class = EstudianteForm
+    template_name = "academico/estudiantes.html"
+    success_url = reverse_lazy("academico:catalogo")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["estudiantes"] = Estudiante.objects.select_related("carrera").all()
+        return context
 
 
+class CatalogoView(LoginRequiredMixin, ListView):
+    model = Seccion
+    template_name = "academico/catalogo.html"
+    context_object_name = "secciones"
 
-
-
-
-
-
-
-# Vista de inicio del sistema académico
-def inicio(request):
-    return render(request, "academico/inicio.html")
-
-
-# Vista para registrar y listar estudiantes
-def estudiantes(request):
-    if request.method == "POST":
-        form = EstudianteForm(request.POST, request.FILES)
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related(
+            "curso__carrera", "curso__semestre", "periodo", "profesor"
+        )
+        form = CatalogoForm(self.request.GET or None)
         if form.is_valid():
-            form.save()
-            return redirect("academico:catalogo")
-    else:
-        form = EstudianteForm()
+            carrera = form.cleaned_data.get("carrera")
+            jornada = form.cleaned_data.get("jornada")
+            if carrera:
+                queryset = queryset.filter(curso__carrera=carrera)
+            if jornada:
+                queryset = queryset.filter(jornada=jornada)
+        return queryset
 
-    lista_estudiantes = Estudiante.objects.select_related("carrera").all()
-    contexto = {
-        "form": form,
-        "estudiantes": lista_estudiantes,
-    }
-    return render(request, "academico/estudiantes.html", contexto)
-
-
-# Vista de catálogo filtrable por carrera y jornada
-def catalogo(request):
-    form = CatalogoForm(request.GET or None)
-    carreras = Carrera.objects.select_related("facultad").prefetch_related("cursos__semestre")
-    secciones = Seccion.objects.select_related("curso__carrera", "curso__semestre", "periodo", "profesor")
-
-    carrera_seleccionada = None
-    jornada_seleccionada = ""
-
-    if form.is_valid():
-        carrera_seleccionada = form.cleaned_data.get("carrera")
-        jornada_seleccionada = form.cleaned_data.get("jornada")
-
-        if carrera_seleccionada:
-            carreras = carreras.filter(pk=carrera_seleccionada.pk)
-            secciones = secciones.filter(curso__carrera=carrera_seleccionada)
-
-        if jornada_seleccionada:
-            secciones = secciones.filter(jornada=jornada_seleccionada)
-
-    contexto = {
-        "form": form,
-        "carreras": carreras,
-        "secciones": secciones,
-        "carrera_seleccionada": carrera_seleccionada,
-        "jornada_seleccionada": jornada_seleccionada,
-    }
-    return render(request, "academico/catalogo.html", contexto)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form"] = CatalogoForm(self.request.GET or None)
+        context["carreras"] = Carrera.objects.select_related("facultad").prefetch_related("cursos")
+        return context
 
 
-# Vista basada en clases para crear matrículas y mostrar el listado
-class MatriculaCreateView(CreateView):
+# =====================================================================
+# MATRÍCULAS Y NOTAS
+# =====================================================================
+class MatriculaCreateView(LoginRequiredMixin, CreateView):
     model = Matricula
     form_class = MatriculaForm
     template_name = "academico/matriculas.html"
     success_url = reverse_lazy("academico:matriculas")
 
     def form_valid(self, form):
-        # Guarda la matrícula y asegura que exista su registro de Nota (relación 1:1)
         response = super().form_valid(form)
         Nota.objects.get_or_create(matricula=self.object)
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["matriculas"] = (
-            Matricula.objects.select_related(
-                "estudiante__carrera",
-                "seccion__curso",
-                "seccion__periodo",
-                "nota",
-            )
-            .all()
-        )
+        context["matriculas"] = Matricula.objects.select_related(
+            "estudiante__carrera", "seccion__curso", "seccion__periodo", "nota"
+        ).all()
         return context
 
 
-# Vista basada en clases para eliminar una matrícula
-class MatriculaDeleteView(DeleteView):
+class MatriculaDeleteView(LoginRequiredMixin, DeleteView):
     model = Matricula
     template_name = "academico/matricula_confirm_delete.html"
     success_url = reverse_lazy("academico:matriculas")
 
 
-# Vista basada en clases para registrar o editar las notas (n1, n2, n3) de una matrícula
-class MatriculaNotaUpdateView(View):
+class MatriculaNotaUpdateView(LoginRequiredMixin, View):
     template_name = "academico/Nota.html"
     success_url = reverse_lazy("academico:matriculas")
 
     def _get_matricula_y_nota(self, pk):
-        # Busca la matrícula por su id y crea/recupera su nota asociada
         matricula = get_object_or_404(Matricula, pk=pk)
         nota, _ = Nota.objects.get_or_create(matricula=matricula)
         return matricula, nota
@@ -131,35 +102,20 @@ class MatriculaNotaUpdateView(View):
     def get(self, request, pk):
         matricula, nota = self._get_matricula_y_nota(pk)
         form = NotaForm(instance=nota)
-        return render(
-            request,
-            self.template_name,
-            {"form": form, "matricula": matricula, "nota": nota},
-        )
+        return render(request, self.template_name, {"form": form, "matricula": matricula, "nota": nota})
 
     def post(self, request, pk):
         matricula, nota = self._get_matricula_y_nota(pk)
         form = NotaForm(request.POST, instance=nota)
         if form.is_valid():
-            # Al guardar Nota, el modelo calcula automáticamente el promedio y el estado (>= 70)
             form.save()
             return redirect(self.success_url)
-        return render(
-            request,
-            self.template_name,
-            {"form": form, "matricula": matricula, "nota": nota},
-        )
+        return render(request, self.template_name, {"form": form, "matricula": matricula, "nota": nota})
 
 
-
-class UniversidadCreateView(LoginRequiredMixin, UsuarioRegistroMixin, SuccessMessageMixin, CreateView):
-    model = Universidad
-    form_class = UniversidadForm
-    template_name = "academico/universidad_form.html"
-    success_url = reverse_lazy("academico:universidad_lista")
-    success_message = "Universidad creada correctamente."
-    
-
+# =====================================================================
+# CRUD DE UNIVERSIDAD
+# =====================================================================
 class UniversidadListView(LoginRequiredMixin, ExportarMixin, ListView):
     model = Universidad
     template_name = "academico/universidad_lista.html"

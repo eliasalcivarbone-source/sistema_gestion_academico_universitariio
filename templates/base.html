@@ -17,7 +17,9 @@
                 <a class="btn btn-outline-info btn-sm" href="{% url 'academico:catalogo' %}">Catálogo</a>
                 <a class="btn btn-outline-warning btn-sm" href="{% url 'academico:estudiantes' %}">Estudiantes</a>
                 <a class="btn btn-primary btn-sm" href="{% url 'academico:matriculas' %}">Matrículas</a>
-                {% block nav_links %}{% endblock %}
+                
+                <!-- BOTÓN NUEVO AGREGADO AQUÍ -->
+                <a class="btn btn-outline-success btn-sm" href="{% url 'academico:universidad_lista' %}">Universidades</a>
             </div>
         </div>
     </nav>

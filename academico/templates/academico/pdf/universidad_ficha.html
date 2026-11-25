@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ficha de Universidad</title>
+    <style>
+        body { font-family: sans-serif; }
+        h1 { color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Universidad: {{ universidad.nombre }}</h1>
+    <p><strong>Siglas:</strong> {{ universidad.siglas }}</p>
+    <p><strong>Ciudad:</strong> {{ universidad.ciudad }}</p>
+    
+    <h3>Facultades:</h3>
+    <ul>
+        {% for facultad in facultades %}
+            <li>{{ facultad.nombre }}</li>
+        {% empty %}
+            <li>No hay facultades registradas.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
