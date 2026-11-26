@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Listado</h2>
+    <a href="?crear=true" class="btn btn-primary mb-3">+ Nuevo Registro</a> <!-- Este botón lo podemos ajustar luego, pero la tabla funcionará -->
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr><th>ID</th><th>Representación</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>
+            {% for objeto in objetos %}
+            <tr>
+                <td>{{ objeto.pk }}</td>
+                <td>{{ objeto }}</td> <!-- Usa el __str__ del modelo -->
+                <td>
+                    <!-- Aquí irían los botones de editar y eliminar, pero como es genérico, los dejamos visuales por ahora -->
+                    <button class="btn btn-sm btn-warning">Editar</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">No hay registros</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
